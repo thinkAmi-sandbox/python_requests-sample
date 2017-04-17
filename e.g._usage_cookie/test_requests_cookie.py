@@ -51,3 +51,33 @@ class TestCookieUsingSessionObject(object):
         assert response.cookies.get('redirect') == 'bar'
         assert session.cookies.get('root') is None
         assert session.cookies.get('redirect') == 'bar'
+
+
+class TestCookieUsingSessionContextManager(object):
+    def test_get(self):
+        with requests.Session() as session:
+            response = session.get('http://localhost:8080')
+            assert response.status_code == 200
+            # responseとsessionの両方にCookieがセットされる
+            assert response.cookies.get('root') == 'foo'
+            assert session.cookies.get('root') == 'foo'
+
+    def test_allow_redirect(self):
+        with requests.Session() as session:
+            response = session.get('http://localhost:8080/redirect')
+            assert response.status_code == 200
+            # Cookie「redirect」はsessionのみセットされる
+            assert response.cookies.get('root') == 'foo'
+            assert response.cookies.get('redirect') is None
+            assert session.cookies.get('root') == 'foo'
+            assert session.cookies.get('redirect') == 'bar'
+
+    def test_forbid_redirect(self):
+        with requests.Session() as session:
+            response = session.get('http://localhost:8080/redirect', allow_redirects=False)
+            assert response.status_code == 303
+            # responseとsessionの両方にCookieがセットされる
+            assert response.cookies.get('root') is None
+            assert response.cookies.get('redirect') == 'bar'
+            assert session.cookies.get('root') is None
+            assert session.cookies.get('redirect') == 'bar'
